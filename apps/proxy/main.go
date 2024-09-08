@@ -16,12 +16,13 @@ import (
 
 func main() {
 	app := pocketbase.New()
-	isGoRun := strings.HasPrefix(os.Args[0], os.TempDir()) || strings.Contains(os.Args[0], "JetBrains")
+	isDevMode := strings.HasPrefix(os.Args[0], os.TempDir()) || strings.Contains(os.Args[0], "JetBrains") || strings.Contains(os.Args[0], "debug") || strings.Contains(os.Args[0], "pb_dev")
+	fmt.Println("isDevMode", isDevMode)
 	migratecmd.MustRegister(app, app.RootCmd, migratecmd.Config{
 		// enable auto creation of migration files when making collection changes in the Admin UI
-		// (the isGoRun check is to enable it only during development)
+		// (the isDevMode check is to enable it only during development)
 		// Dir:         migrationDir,
-		Automigrate: isGoRun,
+		Automigrate: isDevMode,
 	})
 
 	// serves static files from the provided public dir (if exists)

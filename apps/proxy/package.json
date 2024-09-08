@@ -9,6 +9,7 @@
     "typescript": "^5.0.0"
   },
   "scripts": {
-    "dev": "deno -A run dev.ts"
+    "dev": "deno run -A dev.ts",
+    "build": "go build -o pocketbase main.go"
   }
 }

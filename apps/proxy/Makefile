@@ -1,5 +1,5 @@
 dev:
-	deno -A run dev.ts
+	deno run -A dev.ts
 	
 run:
 	go run main.go serve

@@ -8,10 +8,10 @@ async function startGoServer() {
   }
 
   const buildCmd = new Deno.Command("go", {
-    args: ["build", "-o", "pocketbase", "main.go"],
+    args: ["build", "-o", "pb_dev", "main.go"],
   });
   await buildCmd.output();
-  const cmd = new Deno.Command("./pocketbase", { args: ["serve"] });
+  const cmd = new Deno.Command("./pb_dev", { args: ["serve"] });
   child = cmd.spawn();
   console.log("Go server started.");
 }
