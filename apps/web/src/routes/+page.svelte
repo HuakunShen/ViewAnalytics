@@ -1,4 +1,4 @@
-<script lang="ts">
+<!-- <script lang="ts">
 	import { page } from '$app/stores';
 	import { trpc } from '$lib/trpc/client';
   
@@ -22,8 +22,8 @@
 	on:click|preventDefault={loadData}>Load</a
   >
   <p>{greeting}</p>
-  
-<!-- <script lang="ts">
+   -->
+<script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import PocketBase from 'pocketbase';
 	import { onMount } from 'svelte';
@@ -31,7 +31,10 @@
 	const pb = new PocketBase('http://localhost:8090');
 	// const pb = new PocketBase('https://proxy.huakun.tech');
 
-	onMount(async () => {});
+	onMount(async () => {
+		const records = await pb.collection('proxy_records').getFullList();
+		console.log(records);
+	});
 
 	async function onSignInClicked() {
 		pb.collection('users')
@@ -54,4 +57,4 @@
 <Button onclick={onSignInClicked}>Sign In</Button>
 <Button onclick={logout}>Logout</Button>
 <span>Is Valid: {pb.authStore.isValid}</span>
-<pre>Model: {JSON.stringify(pb.authStore.model, null, 2)}</pre> -->
+<pre>Model: {JSON.stringify(pb.authStore.model, null, 2)}</pre>

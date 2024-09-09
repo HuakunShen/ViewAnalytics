@@ -16,8 +16,8 @@ import (
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 )
 
-func getOriginalUrl(c echo.Context, route string) string {
-	url := c.Request().URL.Path[len(route)+1:]
+func getOriginalUrl(c echo.Context, route string, username string) string {
+	url := c.Request().URL.Path[len(route)+len(username)+2:]
 	rawQuery := c.Request().URL.RawQuery
 	if rawQuery != "" {
 		url += "?" + rawQuery
@@ -25,15 +25,22 @@ func getOriginalUrl(c echo.Context, route string) string {
 	return url
 }
 
-func logToDatabaseProxyRecord(app *pocketbase.PocketBase, url string, referer string, ip string) error {
+func logToDatabaseProxyRecord(app *pocketbase.PocketBase, url string, username string, referer string, ip string, _type string) error {
 	collection, err := app.Dao().FindCollectionByNameOrId("proxy_records")
 	if err != nil {
 		return err
 	}
+	user, err := app.Dao().FindFirstRecordByData("users", "username", username)
+	if err != nil {
+		return err
+	}
+	userId := user.Id
 	record := models.NewRecord(collection)
 	record.Set("url", url)
 	record.Set("ip", ip)
 	record.Set("referer", referer)
+	record.Set("user", userId)
+	record.Set("type", _type)
 	if err := app.Dao().SaveRecord(record); err != nil {
 		return err
 	}
@@ -53,12 +60,17 @@ func main() {
 
 	// serves static files from the provided public dir (if exists)
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
-		proxyRoute := "/api/proxy"
-		e.Router.GET(proxyRoute+"/:url", func(c echo.Context) error {
+		proxyRoute := "/proxy"
+		e.Router.GET(proxyRoute+"/:username/:url", func(c echo.Context) error {
+			username := c.PathParam("username")
 			// this url path starts with /api/proxy/, now we need to remove /api/proxy/ and get the rest of the path
-			url := getOriginalUrl(c, proxyRoute)
+			url := getOriginalUrl(c, proxyRoute, username)
+			// trim the username from the url
 			// log to database
-			logToDatabaseProxyRecord(app, url, c.Request().Header.Get("Referer"), c.RealIP())
+			err := logToDatabaseProxyRecord(app, url, username, c.Request().Header.Get("Referer"), c.RealIP(), "proxy")
+			if err != nil {
+				return err
+			}
 			// redirect to the url
 			resp, err := http.Get(url)
 			if err != nil {
@@ -80,16 +92,19 @@ func main() {
 			return err
 		})
 
-		e.Router.GET("/api/health", func(c echo.Context) error {
+		e.Router.GET("/health", func(c echo.Context) error {
 			return c.String(http.StatusOK, "OK")
 		})
 
-		redirectRoute := "/api/redirect"
-		e.Router.GET(redirectRoute+"/:url", func(c echo.Context) error {
-			url := getOriginalUrl(c, redirectRoute)
-			fmt.Println("url", url)
+		redirectRoute := "/redirect"
+		e.Router.GET(redirectRoute+"/:username/:url", func(c echo.Context) error {
+			username := c.PathParam("username")
+			url := getOriginalUrl(c, redirectRoute, username)
 			// log to database
-			logToDatabaseProxyRecord(app, url, c.Request().Header.Get("Referer"), c.RealIP())
+			err := logToDatabaseProxyRecord(app, url, username, c.Request().Header.Get("Referer"), c.RealIP(), "redirect")
+			if err != nil {
+				return err
+			}
 			// redirect to the url
 			return c.Redirect(http.StatusTemporaryRedirect, url)
 		})
