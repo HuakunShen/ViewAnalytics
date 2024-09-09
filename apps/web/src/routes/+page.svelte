@@ -24,12 +24,12 @@
   <p>{greeting}</p>
    -->
 <script lang="ts">
+	import { dev } from '$app/environment';
 	import { Button } from '$lib/components/ui/button';
 	import PocketBase from 'pocketbase';
 	import { onMount } from 'svelte';
 
-	const pb = new PocketBase('http://localhost:8090');
-	// const pb = new PocketBase('https://proxy.huakun.tech');
+	const pb = new PocketBase(dev ? 'http://localhost:8090' : 'https://proxy.huakun.tech');
 
 	onMount(async () => {
 		const records = await pb.collection('proxy_records').getFullList();
