@@ -18,27 +18,11 @@ func init() {
 			return err
 		}
 
-		// update
-		edit_user := &schema.SchemaField{}
-		if err := json.Unmarshal([]byte(`{
-			"system": false,
-			"id": "gfhhrhvd",
-			"name": "user",
-			"type": "relation",
-			"required": true,
-			"presentable": false,
-			"unique": false,
-			"options": {
-				"collectionId": "_pb_users_auth_",
-				"cascadeDelete": false,
-				"minSelect": null,
-				"maxSelect": 1,
-				"displayFields": null
-			}
-		}`), edit_user); err != nil {
-			return err
-		}
-		collection.Schema.AddField(edit_user)
+		// remove
+		collection.Schema.RemoveField("1wpzyevj")
+
+		// remove
+		collection.Schema.RemoveField("oq1vws3u")
 
 		return dao.SaveCollection(collection)
 	}, func(db dbx.Builder) error {
@@ -49,27 +33,45 @@ func init() {
 			return err
 		}
 
-		// update
-		edit_user := &schema.SchemaField{}
+		// add
+		del_latitude := &schema.SchemaField{}
 		if err := json.Unmarshal([]byte(`{
 			"system": false,
-			"id": "gfhhrhvd",
-			"name": "user",
-			"type": "relation",
+			"id": "1wpzyevj",
+			"name": "latitude",
+			"type": "number",
 			"required": false,
 			"presentable": false,
 			"unique": false,
 			"options": {
-				"collectionId": "_pb_users_auth_",
-				"cascadeDelete": false,
-				"minSelect": null,
-				"maxSelect": 1,
-				"displayFields": null
+				"min": null,
+				"max": null,
+				"noDecimal": false
 			}
-		}`), edit_user); err != nil {
+		}`), del_latitude); err != nil {
 			return err
 		}
-		collection.Schema.AddField(edit_user)
+		collection.Schema.AddField(del_latitude)
+
+		// add
+		del_longitude := &schema.SchemaField{}
+		if err := json.Unmarshal([]byte(`{
+			"system": false,
+			"id": "oq1vws3u",
+			"name": "longitude",
+			"type": "number",
+			"required": false,
+			"presentable": false,
+			"unique": false,
+			"options": {
+				"min": null,
+				"max": null,
+				"noDecimal": false
+			}
+		}`), del_longitude); err != nil {
+			return err
+		}
+		collection.Schema.AddField(del_longitude)
 
 		return dao.SaveCollection(collection)
 	})

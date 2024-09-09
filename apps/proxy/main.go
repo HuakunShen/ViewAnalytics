@@ -11,6 +11,7 @@ import (
 	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/models"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 )
 
@@ -29,13 +30,21 @@ func main() {
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		proxyRoute := "/api/proxy"
 		e.Router.GET(proxyRoute+"/:url", func(c echo.Context) error {
-			// path := c.PathParam("path")
-			fmt.Println(c.Request().URL.Path)
 			// this url path starts with /api/proxy/, now we need to remove /api/proxy/ and get the rest of the path
 			url := c.Request().URL.Path[len(proxyRoute)+1:]
-			fmt.Println(url)
+			// log to database
+			collection, err := app.Dao().FindCollectionByNameOrId("proxy_records")
+			if err != nil {
+				return err
+			}
+			record := models.NewRecord(collection)
+			record.Set("url", url)
+			record.Set("ip", c.RealIP())
+			if err := app.Dao().SaveRecord(record); err != nil {
+				return err
+			}
+
 			// redirect to the url
-			return c.JSON(http.StatusOK, map[string]interface{}{url: url})
 			return c.Redirect(http.StatusTemporaryRedirect, url)
 		})
 		return nil
