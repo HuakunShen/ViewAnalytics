@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -14,6 +15,30 @@ import (
 	"github.com/pocketbase/pocketbase/models"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 )
+
+func getOriginalUrl(c echo.Context, route string) string {
+	url := c.Request().URL.Path[len(route)+1:]
+	rawQuery := c.Request().URL.RawQuery
+	if rawQuery != "" {
+		url += "?" + rawQuery
+	}
+	return url
+}
+
+func logToDatabaseProxyRecord(app *pocketbase.PocketBase, url string, referer string, ip string) error {
+	collection, err := app.Dao().FindCollectionByNameOrId("proxy_records")
+	if err != nil {
+		return err
+	}
+	record := models.NewRecord(collection)
+	record.Set("url", url)
+	record.Set("ip", ip)
+	record.Set("referer", referer)
+	if err := app.Dao().SaveRecord(record); err != nil {
+		return err
+	}
+	return nil
+}
 
 func main() {
 	app := pocketbase.New()
@@ -31,25 +56,42 @@ func main() {
 		proxyRoute := "/api/proxy"
 		e.Router.GET(proxyRoute+"/:url", func(c echo.Context) error {
 			// this url path starts with /api/proxy/, now we need to remove /api/proxy/ and get the rest of the path
-			url := c.Request().URL.Path[len(proxyRoute)+1:]
+			url := getOriginalUrl(c, proxyRoute)
 			// log to database
-			collection, err := app.Dao().FindCollectionByNameOrId("proxy_records")
+			logToDatabaseProxyRecord(app, url, c.Request().Header.Get("Referer"), c.RealIP())
+			// redirect to the url
+			resp, err := http.Get(url)
 			if err != nil {
 				return err
 			}
-			record := models.NewRecord(collection)
-			record.Set("url", url)
-			record.Set("ip", c.RealIP())
-			if err := app.Dao().SaveRecord(record); err != nil {
-				return err
+			defer resp.Body.Close()
+
+			// Copy headers from the original response
+			for key, values := range resp.Header {
+				for _, value := range values {
+					c.Response().Header().Add(key, value)
+				}
 			}
 
-			// redirect to the url
-			return c.Redirect(http.StatusTemporaryRedirect, url)
+			// Set the status code
+			c.Response().WriteHeader(resp.StatusCode)
+			// Stream the response body
+			_, err = io.Copy(c.Response(), resp.Body)
+			return err
 		})
 
 		e.Router.GET("/api/health", func(c echo.Context) error {
 			return c.String(http.StatusOK, "OK")
+		})
+
+		redirectRoute := "/api/redirect"
+		e.Router.GET(redirectRoute+"/:url", func(c echo.Context) error {
+			url := getOriginalUrl(c, redirectRoute)
+			fmt.Println("url", url)
+			// log to database
+			logToDatabaseProxyRecord(app, url, c.Request().Header.Get("Referer"), c.RealIP())
+			// redirect to the url
+			return c.Redirect(http.StatusTemporaryRedirect, url)
 		})
 		return nil
 	})
