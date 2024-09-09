@@ -10,6 +10,7 @@
   },
   "scripts": {
     "dev": "deno run -A dev.ts",
-    "build": "go build -o pocketbase main.go"
+    "build": "go build -o pocketbase main.go",
+    "start": "./pocketbase"
   }
 }

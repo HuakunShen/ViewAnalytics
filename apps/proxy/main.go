@@ -47,6 +47,10 @@ func main() {
 			// redirect to the url
 			return c.Redirect(http.StatusTemporaryRedirect, url)
 		})
+
+		e.Router.GET("/api/health", func(c echo.Context) error {
+			return c.String(http.StatusOK, "OK")
+		})
 		return nil
 	})
 
